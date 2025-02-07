@@ -1,31 +1,30 @@
 import fetch from "node-fetch";
 
 export async function handler(event, context) {
-  // Build a query string with minimal filters and a wide date range.
-  // This will show up to 20 reviews from 2020-01-01 through 2025-12-31,
-  // ignoring whether they're published or not.
-  // If your property has more than 20 reviews, use a higher 'limit' 
-  // or multiple pages.
-  const apiUrl = 
+  // We omit 'start' and 'end' to rely on default behavior:
+  //   end = today
+  //   start = 180 days before today
+  // As new reviews come in, they’ll appear in this range.
+  // If you need unlimited/older reviews, you can add custom 'start' or 'end' parameters.
+
+  const apiUrl =
     "https://api.customer-alliance.com/reviews/v2/ca.json" +
     "?page=1" +
-    "&fromRating=0" +
+    "&limit=20" +              // number of reviews per page
+    "&fromRating=0" +          // include all rating values
     "&toRating=100" +
-    "&categoryRatings=1" +
-    "&published=0" +
-    "&start=2020-01-01" +
-    "&end=2025-12-31" +
-    "&limit=20";
+    "&categoryRatings=1" +     // fetch category breakdown
+    "&published=0";            // include non-published reviews
 
   try {
-    // Call the Customer Alliance API, injecting your key from Netlify env vars
+    // Fetch from the Customer Alliance API using your environment variable key
     const response = await fetch(apiUrl, {
       headers: {
         "X-CA-AUTH": process.env.CUSTOMER_ALLIANCE_API_KEY,
       },
     });
 
-    // If the API responds with an error (e.g., 401, 404), handle it gracefully
+    // If the API returns an error status, handle gracefully
     if (!response.ok) {
       return {
         statusCode: response.status,
@@ -35,16 +34,23 @@ export async function handler(event, context) {
       };
     }
 
-    // Parse the JSON data
+    // Parse the JSON
     const data = await response.json();
 
-    // Return data in the function response
+    // Return the data, and allow cross-domain requests from your main site
     return {
       statusCode: 200,
+      headers: {
+        // If you want to allow *any* domain, use "*"
+        // Otherwise specify your exact domain:
+        "Access-Control-Allow-Origin": "https://www.gorkiapartments.com",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Methods": "GET,OPTIONS",
+      },
       body: JSON.stringify(data),
     };
   } catch (error) {
-    // Return an error if something unexpected occurs
+    // Catch any unexpected errors
     return {
       statusCode: 500,
       body: JSON.stringify({ error: error.toString() }),
