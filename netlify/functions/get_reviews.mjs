@@ -1,8 +1,7 @@
-// netlify/functions/get-reviews.js
-const fetch = require("node-fetch");
+import fetch from 'node-fetch';
 
-exports.handler = async function(event, context) {
-  // Retrieve query parameters from the URL if needed
+export async function handler(event, context) {
+  // Pull query parameters if needed
   const {
     page = 1,
     start = "2021-01-01",
@@ -14,11 +13,11 @@ exports.handler = async function(event, context) {
     limit = 20,
   } = event.queryStringParameters || {};
 
-  // Construct the Customer Alliance API URL with parameters
+  // Construct the API URL
   const apiUrl = `https://api.customer-alliance.com/reviews/v2/ca.json?page=${page}&start=${start}&end=${end}&fromRating=${fromRating}&toRating=${toRating}&categoryRatings=${categoryRatings}&published=${published}&limit=${limit}`;
 
   try {
-    // Call the Customer Alliance API with the API key stored in an environment variable
+    // Call the Customer Alliance API using the env var for your API key
     const response = await fetch(apiUrl, {
       headers: {
         "X-CA-AUTH": process.env.CUSTOMER_ALLIANCE_API_KEY,
@@ -38,9 +37,10 @@ exports.handler = async function(event, context) {
       body: JSON.stringify(data),
     };
   } catch (error) {
+    // Return a 500 if something goes wrong
     return {
       statusCode: 500,
       body: JSON.stringify({ error: error.toString() }),
     };
   }
-};
+}
